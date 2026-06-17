@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MIDI to G-code converter</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231c1e22%22/><path d=%22M40 70V30l30-5v40%22 stroke=%22%232dd4bf%22 stroke-width=%228%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/><circle cx=%2232%22 cy=%2270%22 r=%2212%22 fill=%22%23ff9933%22/><circle cx=%2262%22 cy=%2265%22 r=%2212%22 fill=%22%23ff9933%22/></svg>" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+		<p class="eyebrow">Make your printer sing.</p>
+        <h1><a href="https://beep3d.xyz">G-code from MIDI</a></h1>
+        <p class="intro">
+          This page converts a MIDI file into <code>M300</code> commands. You can preview and polish
+          your G-code right here. Save it as a <code>.gcode</code> file, or copy the result and
+          paste it into the "Custom G-code" section of your printer profile in your slicer.
+        </p>
+      </section>
+
+      <section class="panel controls-panel">
+        <h2>Upload MIDI</h2>
+        <p class="caption">
+          You can find tons of MIDI files online, along with free editors.
+        </p>
+        <div class="controls-grid">
+          <label class="field file-field">
+            <input id="midiFileInput" type="file" accept=".mid,.midi,audio/midi" />
+          </label>
+        </div>
+
+        <p id="importStatus" class="caption import-status">
+          No MIDI loaded. Upload a <code>.mid</code> file to convert it into playable G-code.
+        </p>
+
+        <section id="trackSelectionPanel" class="track-panel" hidden>
+          <div class="panel-heading track-panel-heading">
+            <h2>MIDI Tracks</h2>
+          </div>
+          <p id="trackSummary" class="caption">
+            Choose which MIDI tracks should be converted into beep G-code.
+          </p>
+          <div id="trackList" class="track-list"></div>
+          <div class="track-actions">
+            <button id="selectAllTracksButton" class="ghost" type="button">Select all</button>
+            <button id="clearTracksButton" class="ghost" type="button">Clear</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="editor-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>G-code</h2>
+          </div>
+
+          <div class="playback-bar">
+            <label class="field">
+              <span>Volume</span>
+              <input id="volumeInput" type="range" min="0" max="100" step="1" value="45" />
+            </label>
+
+            <label class="field">
+              <span>Speed <strong id="speedValue">100%</strong></span>
+              <input id="speedInput" type="range" min="25" max="300" step="5" value="100" />
+            </label>
+          </div>
+
+          <div class="panel-actions secondary-actions">
+            <button id="playbackToggleButton" class="primary">Play</button>
+            <button id="copyGcodeButton" class="ghost" type="button">Copy</button>
+            <button id="saveGcodeButton" class="ghost" type="button">Save as</button>
+            <button id="loadExampleButton" class="ghost" type="button">Load example</button>
+          </div>
+
+          <textarea id="gcodeInput" spellcheck="false">; Example sequence
+M300 S196 P125
+M300 S220 P125
+M300 S262 P125
+M300 S220 P125
+M300 S330 P375
+M300 S330 P250
+G4 P125
+M300 S294 P500
+G4 P250
+M300 S196 P125
+M300 S220 P125
+M300 S262 P125
+M300 S220 P125
+M300 S294 P375
+M300 S294 P250
+G4 P125
+M300 S262 P375
+M300 S247 P125
+M300 S220 P125
+G4 P125
+M300 S196 P125
+M300 S220 P125
+M300 S262 P125
+M300 S220 P125
+M300 S262 P250
+G4 P250
+M300 S294 P250
+M300 S247 P375
+M300 S220 P125
+M300 S196 P250
+G4 P250
+M300 S196 P250
+M300 S294 P375
+G4 P125
+M300 S262 P750</textarea>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Log</h2>
+            <button id="clearLogButton" class="ghost">Clear</button>
+          </div>
+
+          <div class="status-strip">
+            <div>
+              <span class="status-label">Output</span>
+              <strong id="outputValue">Laptop speakers</strong>
+            </div>
+            <div>
+              <span class="status-label">Audio</span>
+              <strong id="audioValue">Ready</strong>
+            </div>
+            <div>
+              <span class="status-label">Playback</span>
+              <strong id="playbackValue">Idle</strong>
+            </div>
+          </div>
+
+          <pre id="logOutput" class="log-output">Ready.</pre>
+        </article>
+      </section>
+
+      <section class="panel guide-panel">
+        <h2>How to use</h2>
+        <div class="guide-content">
+          <p>
+            Just send the resulting G-code to your printer, or add it as 'End G-code' in your printer profile to play a tune when the job is done.
+          </p>
+          <div class="guide-image-wrap">
+            <img src="./img/Screenshot.png" alt="Screenshot showing how to paste G-code into PrusaSlicer" />
+          </div>
+        </div>
+      </section>
+
+      <section class="panel notes">
+        <h2>How it works</h2>
+        <ul>
+          <li><code>M300 S880 P200</code> plays an 880 Hz tone for 200 ms.</li>
+          <li><code>G4 P150</code> inserts a 150 ms pause between notes.</li>
+          <li>MIDI import shows instrument-style track names, then turns notes into <code>M300</code> and gaps into <code>G4</code>.</li>
+          <li>The speed slider rewrites <code>M300 P...</code> and <code>G4</code> timing in the editor.</li>
+          <li><code>Stop</code> cuts playback immediately and silences any active tone.</li>
+          <li>Other G-code lines are ignored and noted in the log.</li>
+          <li>Chord-heavy MIDI is flattened to one melody line by keeping the highest active note.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Find me on <a href="https://www.printables.com/@artemonic/models" target="_blank" rel="noopener noreferrer">Printables</a>
+        <br><br>
+        <a href="https://beep3d.xyz">Beep3D</a> © 2026 by <a href="https://github.com/artemonic">artemonic</a> is licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>
+        <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
+        <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
+        <img src="https://mirrors.creativecommons.org/presskit/icons/sa.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
+      </p>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
